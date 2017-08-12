@@ -1,0 +1,45 @@
+---
+title: "Fire risk in Greater London"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+```{r global, echo=FALSE}
+
+```
+
+
+Row 
+-----------------------------------------------------------------------
+
+### Map of fire locations - Jan 2012 to Aug 2015 {data-width=500}
+
+```{r}
+
+
+plotOutput("mapPlot")
+```
+
+### Fire risk model quartiles by electoral ward {data-width=500}
+
+```{r}
+
+
+plotOutput("wardPlot")
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Chart C
+
+```{r}
+
+```
