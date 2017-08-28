@@ -75,12 +75,12 @@ server <- function(input, output) {
   output$mapPlot <- renderPlot({
     
     # create borough map
-    london_shp <- readShapePoly("../statistical-gis-boundaries-london/ESRI/London_Borough_Excluding_MHW.shp")
+    london_shp <- readShapePoly("./statistical-gis-boundaries-london/ESRI/London_Borough_Excluding_MHW.shp")
     london_map <- fortify(london_shp)
     london_map <- rename(london_map, Easting_rounded = long, Northing_rounded = lat)
     
     # load fire data
-    fires <- readRDS("../Data/fires2.rds")
+    fires <- readRDS("./Data/fires2.rds")
     fires$PropertyCategory <- factor(fires$PropertyCategory)
     N <- nrow(fires)
     
@@ -134,7 +134,7 @@ server <- function(input, output) {
   output$wardPlot <- renderPlot({
     
     # load fire data
-    map.data <- readRDS("../Data/mapData4.rds")
+    map.data <- readRDS("./Data/mapData4.rds")
     
     # calculte fire risk based on input weights
     map.data$fr <- (input$w1 * map.data$ct_fires.d + input$w2 * 
@@ -148,7 +148,7 @@ server <- function(input, output) {
     map.data$quartile <- ordered(map.data$quartile)
     
     # load map data
-    lnd.res <- readShapePoly("../London-wards-2014/London-wards-2014_ESRI/London_Ward_CityMerged.shp")
+    lnd.res <- readShapePoly("./London-wards-2014/London-wards-2014_ESRI/London_Ward_CityMerged.shp")
     lnd.res.map <- fortify(lnd.res, region = "GSS_CODE")
     lnd.res.map <- merge(lnd.res.map, map.data, by.x = "id", by.y = "GSS_CODE", all.x = T)
     
