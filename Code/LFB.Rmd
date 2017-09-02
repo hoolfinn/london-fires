@@ -20,42 +20,48 @@ library(leaflet)
 ```
 
 ```{r global}
-  
-  # create borough map
-    london_shp <- readShapePoly("C:/Users/Finn/OneDrive/Data_Science/london-fires/statistical-gis-boundaries-london/ESRI/London_Borough_Excluding_MHW.shp")
-    london_map <- fortify(london_shp)
-    london_map <- rename(london_map, Easting_rounded = long, Northing_rounded = lat)
-    
-    # load fire data
-    fires <- as_tibble(readRDS("C:/Users/Finn/OneDrive/Data_Science/london-fires/Data/fires2.rds"))
-    fires$PropertyCategory <- factor(fires$PropertyCategory)
-    # N <- nrow(fires)
-    
-    
-    # load fire data
-    map.data <- readRDS("C:/Users/Finn/OneDrive/Data_Science/london-fires/Data/mapData4.rds")
-    
-    # convert
-    d <- fires %>%
-  sample_n(30)
+# load data in 'global' chunk so it can be shared by all users of the dashboard
 
-ukgrid = "+init=epsg:27700"
-latlong = "+init=epsg:4326"
+# create borough map
+london_shp <- readShapePoly("../statistical-gis-boundaries-london/ESRI/London_Borough_Excluding_MHW.shp")
+london_map <- fortify(london_shp)
+london_map <- rename(london_map, Easting_rounded = long, Northing_rounded = lat)
 
+# load fire data
+fires <- as_tibble(readRDS("../Data/fires2.rds"))
+fires$PropertyCategory <- factor(fires$PropertyCategory)
+N <- nrow(fires)
+
+
+# load fire data
+map.data <- readRDS("../Data/mapData4.rds")
+
+# convert
+d <- fires
 d$d_ID <- 1:nrow(d)
+
 # Create coordinates variable
 coords <- cbind(Easting_rounded = as.numeric(as.character(d$Easting_rounded)),
                 Northing_rounded = as.numeric(as.character(d$Northing_rounded)))
+
+# CRS
+ukgrid = "+init=epsg:27700"
+latlong = "+init=epsg:4326"
+
 # Create the SpatialPointsDataFrame
 d_SP <- SpatialPointsDataFrame(coords, 
-                                data = data.frame(d$IncidentNumber, d$d_ID, d$PropertyCategory), 
-                                proj4string = CRS("+init=epsg:27700"))
+                               data = data.frame(d$IncidentNumber, d$d_ID, d$PropertyCategory), 
+                               proj4string = CRS(ukgrid))
 
 d_SP_LL <- spTransform(d_SP, CRS(latlong))
 # we also need to rename the columns
 colnames(d_SP_LL@coords)[colnames(d_SP_LL@coords) == "Easting_rounded"] <- "Longitude"
 colnames(d_SP_LL@coords)[colnames(d_SP_LL@coords) == "Northing_rounded"] <- "Latitude"
 
+# load ward map data
+lnd.res <- readShapePoly("../London-wards-2014/London-wards-2014_ESRI/London_Ward_CityMerged.shp")
+lnd.res.map <- fortify(lnd.res, region = "GSS_CODE")
+lnd.res.map <- merge(lnd.res.map, map.data, by.x = "id", by.y = "GSS_CODE", all.x = T)
 ```
 
 
@@ -185,7 +191,7 @@ sliderInput("bins",
 Ward model
 =====================================
 
-Row {data-height=600}
+Row {data-height=700}
 -----------------------------------------------------------------------
 
 ### Fire risk model quartiles by electoral ward
@@ -206,10 +212,6 @@ renderPlot({
     map.data$quartile[!is.na(map.data$fr)] <- ntile(map.data$fr[!is.na(map.data$fr)], 4)
     map.data$quartile <- ordered(map.data$quartile)
     
-    # load map data
-    lnd.res <- readShapePoly("../London-wards-2014/London-wards-2014_ESRI/London_Ward_CityMerged.shp")
-    lnd.res.map <- fortify(lnd.res, region = "GSS_CODE")
-    lnd.res.map <- merge(lnd.res.map, map.data, by.x = "id", by.y = "GSS_CODE", all.x = T)
     
     # create colour palette
     pal <- colorRampPalette(c("white", "red"))(4)
@@ -225,18 +227,15 @@ renderPlot({
       theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
             axis.text.x = element_blank(), panel.background = element_blank(),
             panel.grid = element_blank())
-    
-  })
 
-
+    })
 ```
 
-Row {data-height=400}
+Row {data-height=300}
 -----------------------------------------------------------------------
 
-### options 3
+### Model parameters
 ```{r}
-
 numericInput("w1", 
              label = h4("Dwelling fire weight"), 
              value = 3
@@ -247,6 +246,10 @@ numericInput("w3",
              value = 1
 )
 
+```
+
+### Model parameters
+```{r}
 numericInput("w5", 
              label = h4("Vehicle fire weight"), 
              value = 1
@@ -257,14 +260,17 @@ numericInput("w2",
              value = 3
 )
 
+```
+
+### Model parameters
+```{r}
+
 numericInput("w4", 
              label = h4("Other residential fire weight"), 
              value = 1
 )
 
-
 ```
-
 
 Leaflet map
 =====================================
