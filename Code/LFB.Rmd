@@ -28,13 +28,16 @@ london_map <- fortify(london_shp)
 london_map <- rename(london_map, Easting_rounded = long, Northing_rounded = lat)
 
 # load fire data
+map.data <- readRDS("../Data/mapData4.rds")
+
+# load fire data
 fires <- as_tibble(readRDS("../Data/fires2.rds"))
 fires$PropertyCategory <- factor(fires$PropertyCategory)
 N <- nrow(fires)
 
-
-# load fire data
-map.data <- readRDS("../Data/mapData4.rds")
+# if (input$propCats != "All"){
+#   fires <- subset(fires, PropertyCategory == input$propCats)
+# }
 
 # convert
 d <- fires
@@ -61,7 +64,7 @@ colnames(d_SP_LL@coords)[colnames(d_SP_LL@coords) == "Northing_rounded"] <- "Lat
 # load ward map data
 lnd.res <- readShapePoly("../London-wards-2014/London-wards-2014_ESRI/London_Ward_CityMerged.shp")
 lnd.res.map <- fortify(lnd.res, region = "GSS_CODE")
-lnd.res.map <- merge(lnd.res.map, map.data, by.x = "id", by.y = "GSS_CODE", all.x = T)
+
 ```
 
 
@@ -191,7 +194,7 @@ sliderInput("bins",
 Ward model
 =====================================
 
-Row {data-height=700}
+Row {data-height=650}
 -----------------------------------------------------------------------
 
 ### Fire risk model quartiles by electoral ward
@@ -200,38 +203,39 @@ Row {data-height=700}
 renderPlot({
     
     
-    
-    # calculte fire risk based on input weights
-    map.data$fr <- (input$w1 * map.data$ct_fires.d + input$w2 * 
-                      map.data$av_workTime.d + input$w3 * 
-                      map.data$ct_fires.nr + input$w4 * map.data$ct_fires.or + 
-                      input$w5 * map.data$ct_fires.v) / 
-      sum(input$w1, input$w2, input$w3, input$w4, input$w5, na.rm = T)
-    
-    # create quartiles
-    map.data$quartile[!is.na(map.data$fr)] <- ntile(map.data$fr[!is.na(map.data$fr)], 4)
-    map.data$quartile <- ordered(map.data$quartile)
-    
-    
-    # create colour palette
-    pal <- colorRampPalette(c("white", "red"))(4)
-    
-    # draw ward plot
-
-    ggplot(lnd.res.map, aes(x=long, y=lat, group=group, fill=quartile)) + #
-      geom_polygon(colour="black") + 
-      scale_fill_manual(values=pal) +
-      xlab("") + ylab("") + 
-      theme_minimal() +
-      labs(fill="Fire risk\nQuartile") +
-      theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
-            axis.text.x = element_blank(), panel.background = element_blank(),
-            panel.grid = element_blank())
+  
+  # calculte fire risk based on input weights
+  map.data$fr <- (input$w1 * map.data$ct_fires.d + input$w2 * 
+                    map.data$av_workTime.d + input$w3 * 
+                    map.data$ct_fires.nr + input$w4 * map.data$ct_fires.or + 
+                    input$w5 * map.data$ct_fires.v) / 
+    sum(input$w1, input$w2, input$w3, input$w4, input$w5, na.rm = T)
+  
+  # create quartiles
+  map.data$quartile[!is.na(map.data$fr)] <- ntile(map.data$fr[!is.na(map.data$fr)], 4)
+  map.data$quartile <- ordered(map.data$quartile)
+  
+  lnd.res.map <- merge(lnd.res.map, map.data, by.x = "id", by.y = "GSS_CODE", all.x = T)
+  
+  # create colour palette
+  pal <- colorRampPalette(c("white", "red"))(4)
+  
+  # draw ward plot
+  
+  ggplot(lnd.res.map, aes(x=long, y=lat, group=group, fill=quartile)) + #
+    geom_polygon(colour="black") + 
+    scale_fill_manual(values=pal) +
+    xlab("") + ylab("") + 
+    theme_minimal() +
+    labs(fill="Fire risk\nQuartile") +
+    theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
+          axis.text.x = element_blank(), panel.background = element_blank(),
+          panel.grid = element_blank())
 
     })
 ```
 
-Row {data-height=300}
+Row {data-height=350}
 -----------------------------------------------------------------------
 
 ### Model parameters
@@ -272,19 +276,15 @@ numericInput("w4",
 
 ```
 
-Leaflet map
+Leaflet cluster map
 =====================================
 
 ### Map of fires
 
 ```{r}
-# if (input$propCats != "All"){
-#   fires <- subset(fires, PropertyCategory == input$propCats)
-# }
+
 renderLeaflet({
   
-
-
 leaflet() %>%
   addTiles() %>%
   addMarkers(lng=d_SP_LL@coords[,1], 
@@ -297,3 +297,29 @@ leaflet() %>%
 ```
 
 
+Leaflet circle map
+=====================================
+
+### Map of fires
+
+```{r}
+# if (input$propCats != "All"){
+#   fires <- subset(fires, PropertyCategory == input$propCats)
+# }
+
+renderLeaflet({
+  
+leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(
+    lng=d_SP_LL@coords[,1], 
+    lat=d_SP_LL@coords[,2],
+    radius = 2,
+    color = "red",
+    stroke = FALSE, fillOpacity = 0.1,
+    popup=d_SP_LL@data$d.PropertyCategory
+  )
+  
+})
+
+```
